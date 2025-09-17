@@ -12,10 +12,16 @@ class StudentsController extends Controller {
     public function __construct()
     {
         parent::__construct();
-        // Initialize DB connection once per request
-        $this->conn = new mysqli("sql12.freesqldatabase.com", "sql12798929", "akhlCbceII", "mockdata");
-        if ($this->conn->connect_error) {
-            die("Connection failed: " . $this->conn->connect_error);
+        // Initialize DB connection once per request using PDO
+        try {
+            $this->conn = new PDO(
+                'mysql:host=sql12.freesqldatabase.com;dbname=mockdata;charset=utf8',
+                'sql12798929',
+                'akhlCbceII'
+            );
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            die("Connection failed: " . $e->getMessage());
         }
     }
 
@@ -67,8 +73,9 @@ class StudentsController extends Controller {
     // Close connection when object is destroyed
     public function __destruct()
     {
+        // PDO closes automatically, but you can unset for clarity
         if ($this->conn) {
-            $this->conn->close();
+            $this->conn = null;
         }
     }
 
@@ -84,13 +91,11 @@ class StudentsController extends Controller {
             $stmt = $this->conn->prepare(
                 "INSERT INTO students (last_name, first_name, email) VALUES (?, ?, ?)"
             );
-            $stmt->bind_param("sss", $last_name, $first_name, $email);
-            $stmt->execute();
-            $stmt->close();
+            $stmt->execute([$last_name, $first_name, $email]);
         }
 
-        $result = $this->conn->query("SELECT * FROM students");
-        $students = $result->fetch_all(MYSQLI_ASSOC);
+        $stmt = $this->conn->query("SELECT * FROM students");
+        $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         require __DIR__ . '/../views/students_view.php';
     }
@@ -107,16 +112,15 @@ class StudentsController extends Controller {
             $stmt = $this->conn->prepare(
                 "UPDATE students SET last_name = ?, first_name = ?, email = ? WHERE id = ?"
             );
-            $stmt->bind_param("sssi", $last_name, $first_name, $email, $id);
+            $success = $stmt->execute([$last_name, $first_name, $email, $id]);
 
-            if ($stmt->execute()) {
+            if ($success) {
                 header("Location: /students");
                 exit;
             } else {
-                echo "Failed to update student: " . $stmt->error;
+                $errorInfo = $stmt->errorInfo();
+                echo "Failed to update student: " . $errorInfo[2];
             }
-
-            $stmt->close();
         } else {
             echo "Invalid Request";
         }
@@ -134,16 +138,15 @@ class StudentsController extends Controller {
             }
 
             $stmt = $this->conn->prepare("DELETE FROM students WHERE id = ?");
-            $stmt->bind_param("i", $id);
+            $success = $stmt->execute([$id]);
 
-            if ($stmt->execute()) {
+            if ($success) {
                 header("Location: /students");
                 exit;
             } else {
-                echo "❌ Failed to delete student: " . $stmt->error;
+                $errorInfo = $stmt->errorInfo();
+                echo "❌ Failed to delete student: " . $errorInfo[2];
             }
-
-            $stmt->close();
         } else {
             echo "Invalid Request (delete only accepts POST).";
         }
