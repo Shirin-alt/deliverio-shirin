@@ -44,7 +44,8 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
 */
 $router ->get('/profile/{fname}/{lname}', 'WelcomeSCD::profile');
 $router ->get('/get-all', 'StudentsController::get_all');
-$router ->get('/create', 'StudentsController::create');
+$router->get('/create', 'StudentsController::create');
+$router->post('/students/create', 'StudentsController::create');
 $router ->get('/update', 'StudentsController::update');
 $router ->get('/delete', 'StudentsController::delete');
 
