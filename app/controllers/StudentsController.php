@@ -75,6 +75,7 @@ class StudentsController extends Controller {
     // Show students and handle new inserts
     public function show_form()
     {
+        // Use the existing connection property, do not create a new one
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $last_name  = $_POST['last_name'] ?? '';
             $first_name = $_POST['first_name'] ?? '';
