@@ -15,7 +15,7 @@ class StudentsController extends Controller {
         // Initialize DB connection once per request using PDO
         try {
             $this->conn = new PDO(
-                'mysql:host=sql12.freesqldatabase.com;dbname=mockdata;charset=utf8',
+                'mysql:host=sql12.freesqldatabase.com;dbname=sql12798929;charset=utf8',
                 'sql12798929',
                 'akhlCbceII'
             );
