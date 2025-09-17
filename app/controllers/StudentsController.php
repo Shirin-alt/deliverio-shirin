@@ -7,6 +7,12 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * Automatically generated via CLI.
  */
 class StudentsController extends Controller {
+    // NOTE: If your 'create' action is not found, make sure:
+    // 1. Your routes.php file has a line like:
+    //    $router->post('/students/create', 'StudentsController@create');
+    // 2. Your form in students_view.php uses:
+    //    <form action="/students/create" method="POST">
+    // 3. The method is public function create() in this controller.
     private $conn; // ✅ this is required
 
     public function __construct()
