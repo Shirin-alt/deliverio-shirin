@@ -7,11 +7,16 @@ defined('PREVENT_DIRECT_ACCESS') OR exit('No direct script access allowed');
  * Automatically generated via CLI.
  */
 class StudentsController extends Controller {
+    private $conn; // ✅ this is required
+
     public function __construct()
     {
         parent::__construct();
-       
-
+        // Initialize DB connection once per request
+        $this->conn = new mysqli("sql12.freesqldatabase.com", "sql12798929", "akhlCbceII", "mockdata");
+        if ($this->conn->connect_error) {
+            die("Connection failed: " . $this->conn->connect_error);
+        }
     }
 
     public function get_all(): void
@@ -55,96 +60,92 @@ class StudentsController extends Controller {
 
        
     }
-     public function show_form() {
+      
 
-        // DB Connection
-        $conn = new mysqli("localhost", "root", "", "mockdata");
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
+    // ...existing code...
+
+    // Close connection when object is destroyed
+    public function __destruct()
+    {
+        if ($this->conn) {
+            $this->conn->close();
         }
+    }
 
-        // Handle insert
+    // Show students and handle new inserts
+    public function show_form()
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $last_name  = $_POST['last_name'] ?? '';
             $first_name = $_POST['first_name'] ?? '';
             $email      = $_POST['email'] ?? '';
 
-            $stmt = $conn->prepare("INSERT INTO students (last_name, first_name, email) VALUES (?, ?, ?)");
+            $stmt = $this->conn->prepare(
+                "INSERT INTO students (last_name, first_name, email) VALUES (?, ?, ?)"
+            );
             $stmt->bind_param("sss", $last_name, $first_name, $email);
             $stmt->execute();
             $stmt->close();
         }
 
-        // Get all students
-        $result = $conn->query("SELECT * FROM students");
+        $result = $this->conn->query("SELECT * FROM students");
         $students = $result->fetch_all(MYSQLI_ASSOC);
-        $conn->close();
 
         require __DIR__ . '/../views/students_view.php';
     }
 
-     public function update_student()
-{
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
-        $last_name = $_POST['last_name'] ?? '';
-        $first_name = $_POST['first_name'] ?? '';
-        $email = $_POST['email'] ?? '';
+    // Update existing student
+    public function update_student()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id         = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+            $last_name  = $_POST['last_name'] ?? '';
+            $first_name = $_POST['first_name'] ?? '';
+            $email      = $_POST['email'] ?? '';
 
-        $conn = new mysqli("localhost", "root", "", "mockdata");
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
+            $stmt = $this->conn->prepare(
+                "UPDATE students SET last_name = ?, first_name = ?, email = ? WHERE id = ?"
+            );
+            $stmt->bind_param("sssi", $last_name, $first_name, $email, $id);
 
-        $stmt = $conn->prepare("UPDATE students SET last_name = ?, first_name = ?, email = ? WHERE id = ?");
-        $stmt->bind_param("sssi", $last_name, $first_name, $email, $id);
+            if ($stmt->execute()) {
+                header("Location: /students");
+                exit;
+            } else {
+                echo "Failed to update student: " . $stmt->error;
+            }
 
-        if ($stmt->execute()) {
-            header("Location: /students"); 
-            exit;
+            $stmt->close();
         } else {
-            echo "Failed to update student.";
+            echo "Invalid Request";
         }
-
-        $stmt->close();
-        $conn->close();
-    } else {
-        echo "Invalid Request";
     }
-}
 
+    // Delete student
+    public function delete_student()
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
-   public function delete_student() 
-   {
-    
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+            if ($id <= 0) {
+                echo "❌ Invalid student ID.";
+                exit;
+            }
 
-        if ($id <= 0) {
-            echo "❌ Invalid student ID.";
-            exit;
-        }
+            $stmt = $this->conn->prepare("DELETE FROM students WHERE id = ?");
+            $stmt->bind_param("i", $id);
 
-        $conn = new mysqli("localhost", "root", "", "mockdata");
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
+            if ($stmt->execute()) {
+                header("Location: /students");
+                exit;
+            } else {
+                echo "❌ Failed to delete student: " . $stmt->error;
+            }
 
-        $stmt = $conn->prepare("DELETE FROM students WHERE id = ?");
-        $stmt->bind_param("i", $id);
-
-        if ($stmt->execute()) {
-            header("Location: /students");
-            exit;
+            $stmt->close();
         } else {
-            echo "❌ Failed to delete student: " . $stmt->error;
+            echo "Invalid Request (delete only accepts POST).";
         }
-
-        $stmt->close();
-        $conn->close();
-    } else {
-        echo "Invalid Request (delete only accepts POST).";
-    }
     }
 
 }
